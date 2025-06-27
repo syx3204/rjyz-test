@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>安全验证 | 人机验证</title>
-    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=onLoadCallback" async defer></script>
+    <title>人机验证系统</title>
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
@@ -24,7 +24,7 @@
             color: #333;
         }
         
-        .verification-card {
+        .verification-container {
             width: 100%;
             max-width: 480px;
             background: rgba(255, 255, 255, 0.95);
@@ -43,7 +43,7 @@
             }
         }
         
-        .card-header {
+        .header {
             padding: 35px 30px 25px;
             text-align: center;
             background: linear-gradient(135deg, #4b6cb7 0%, #182848 100%);
@@ -52,7 +52,7 @@
             overflow: hidden;
         }
         
-        .card-header::before {
+        .header::before {
             content: '';
             position: absolute;
             top: -50%;
@@ -74,12 +74,6 @@
             align-items: center;
             backdrop-filter: blur(5px);
             border: 2px solid rgba(255, 255, 255, 0.25);
-            animation: iconPulse 2s infinite ease-in-out;
-        }
-        
-        @keyframes iconPulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
         }
         
         .icon-container i {
@@ -100,11 +94,11 @@
             font-weight: 400;
         }
         
-        .card-body {
+        .content {
             padding: 35px 30px;
         }
         
-        .verification-container {
+        .verification-section {
             min-height: 180px;
             display: flex;
             flex-direction: column;
@@ -268,12 +262,42 @@
             transition: width 0.4s ease;
         }
         
+        .message-sent {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            border-radius: 12px;
+            padding: 15px;
+            margin-top: 20px;
+            display: none;
+        }
+        
+        .message-sent.show {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .message-content {
+            font-family: monospace;
+            background: #f8fafc;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+            font-size: 14px;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        
         @media (max-width: 600px) {
-            .card-header {
+            .header {
                 padding: 25px 20px 15px;
             }
             
-            .card-body {
+            .content {
                 padding: 25px 20px;
             }
             
@@ -306,8 +330,8 @@
     </style>
 </head>
 <body>
-    <div class="verification-card">
-        <div class="card-header">
+    <div class="verification-container">
+        <div class="header">
             <div class="icon-container">
                 <i class="fas fa-shield-alt"></i>
             </div>
@@ -315,8 +339,8 @@
             <p class="subtitle">请完成人机验证以继续</p>
         </div>
         
-        <div class="card-body">
-            <div class="verification-container">
+        <div class="content">
+            <div class="verification-section">
                 <div id="turnstile-container"></div>
                 
                 <div class="progress-container" id="progress-container">
@@ -329,12 +353,17 @@
                         <i class="fas fa-check-circle success-icon hidden" id="success-icon"></i>
                         <i class="fas fa-exclamation-circle error-icon hidden" id="error-icon"></i>
                     </div>
-                    <div class="result-message" id="result-message">正在验证您的身份，请稍候...</div>
+                    <div class="result-message" id="result-message">请完成下方的人机验证</div>
                 </div>
                 
                 <button id="action-button" class="action-button hidden">
                     <i class="fas fa-sync-alt"></i> 重新验证
                 </button>
+                
+                <div class="message-sent" id="message-sent">
+                    <p><i class="fas fa-paper-plane"></i> 已向父窗口发送验证成功消息：</p>
+                    <div class="message-content" id="message-content"></div>
+                </div>
             </div>
         </div>
         
@@ -354,6 +383,8 @@
         const CONFIG = {
             siteKey: "0x4AAAAAABimt1T7asd60UgX",
             verifyEndpoint: "https://rjyz.myproject.dpdns.org/",
+            eventId: "turnstile-verification-success", // 自定义事件ID
+            messageSource: "AerIframe", // 消息源标识
             verificationDelay: 800 // 模拟验证延迟
         };
 
@@ -367,14 +398,14 @@
         const actionButton = document.getElementById('action-button');
         const progressContainer = document.getElementById('progress-container');
         const progressBar = document.getElementById('progress-bar');
+        const messageSent = document.getElementById('message-sent');
+        const messageContent = document.getElementById('message-content');
         
         let turnstileWidget;
+        let verificationToken = "";
 
         // 初始化页面
         function initPage() {
-            // 显示加载状态
-            showVerificationStatus("正在初始化验证系统...", "loading");
-            
             // 添加结果容器显示动画
             setTimeout(() => {
                 resultContainer.classList.add('show');
@@ -387,8 +418,12 @@
             turnstileContainer.innerHTML = "";
             actionButton.classList.add('hidden');
             progressContainer.style.display = 'none';
+            messageSent.classList.remove('show');
             hideAllIcons();
             loadingIcon.classList.remove('hidden');
+            
+            // 更新消息
+            showVerificationStatus("请完成人机验证", "loading");
             
             // 渲染Turnstile
             turnstileWidget = window.turnstile.render('#turnstile-container', {
@@ -397,6 +432,7 @@
                 size: "normal",
                 language: "zh",
                 callback: function(token) {
+                    verificationToken = token;
                     verifyToken(token);
                 },
                 'expired-callback': function() {
@@ -445,14 +481,21 @@
                     // 验证成功
                     showVerificationStatus("验证成功！您是真实用户", "success");
                     
-                    // 2秒后显示成功状态
+                    // 发送消息给父窗口
+                    sendSuccessMessage(result);
+                    
+                    // 显示发送的消息内容
+                    displaySentMessage();
+                    
+                    // 3秒后隐藏进度条
                     setTimeout(() => {
-                        showVerificationStatus("验证完成，正在为您跳转...", "success");
-                    }, 2000);
+                        progressContainer.style.display = 'none';
+                    }, 1000);
                 } else {
                     // 验证失败
                     showVerificationStatus(`验证失败：${result.message || '疑似机器人行为'}`, "error");
                     actionButton.classList.remove('hidden');
+                    progressContainer.style.display = 'none';
                 }
             } catch (error) {
                 let errorMsg = error.message;
@@ -461,12 +504,41 @@
                 }
                 showVerificationStatus(`验证错误：${errorMsg}`, "error");
                 actionButton.classList.remove('hidden');
-            } finally {
-                // 隐藏进度条
-                setTimeout(() => {
-                    progressContainer.style.display = 'none';
-                }, 500);
+                progressContainer.style.display = 'none';
             }
+        }
+
+        // 发送成功消息给父窗口
+        function sendSuccessMessage(result) {
+            const message = {
+                source: CONFIG.messageSource,
+                id: CONFIG.eventId,
+                data: {
+                    message: "人机验证成功",
+                    token: verificationToken,
+                    timestamp: new Date().toISOString(),
+                    challenge_ts: result.challenge_ts,
+                    hostname: result.hostname,
+                    action: result.action,
+                    cdata: result.cdata
+                }
+            };
+            
+            // 发送消息给父窗口
+            parent.postMessage(message, '*');
+            return message;
+        }
+
+        // 显示发送的消息内容
+        function displaySentMessage() {
+            const message = {
+                source: CONFIG.messageSource,
+                id: CONFIG.eventId,
+                data: "人机验证成功"
+            };
+            
+            messageContent.textContent = JSON.stringify(message, null, 2);
+            messageSent.classList.add('show');
         }
 
         // 模拟验证进度
@@ -524,9 +596,6 @@
         window.onLoadCallback = function() {
             // 渲染验证组件
             renderTurnstile();
-            
-            // 更新状态
-            showVerificationStatus("请完成人机验证", "loading");
         };
 
         // 初始化页面
