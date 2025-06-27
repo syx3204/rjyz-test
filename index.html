@@ -1,8 +1,302 @@
-<!-- 引入Turnstile脚本 -->
-<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cloudflare Turnstile 验证系统</title>
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=onLoadCallback" async defer></script>
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --success: #10b981;
+            --error: #ef4444;
+            --text: #1e293b;
+            --bg: #f8fafc;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            color: var(--text);
+            line-height: 1.6;
+        }
+        .card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 500px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        .card-header {
+            background: var(--primary);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .card-body {
+            padding: 40px;
+        }
+        h1 {
+            font-weight: 700;
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+        .subtitle {
+            opacity: 0.85;
+            font-size: 16px;
+        }
+        .status-container {
+            min-height: 160px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            margin: 30px 0;
+        }
+        #turnstile-widget {
+            display: flex;
+            justify-content: center;
+            margin: 25px 0;
+        }
+        .result-message {
+            font-size: 18px;
+            font-weight: 500;
+            padding: 20px;
+            border-radius: 16px;
+            opacity: 0;
+            transform: translateY(15px);
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex;
+            align-items: center;
+            text-align: left;
+        }
+        .result-message.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .success {
+            background-color: rgba(16, 185, 129, 0.1);
+            border-left: 4px solid var(--success);
+        }
+        .error {
+            background-color: rgba(239, 68, 68, 0.1);
+            border-left: 4px solid var(--error);
+        }
+        .loading {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            border: 3px solid rgba(79, 70, 229, 0.2);
+            border-radius: 50%;
+            border-top-color: var(--primary);
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+        .icon {
+            font-size: 24px;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+        .success .icon { color: var(--success); }
+        .error .icon { color: var(--error); }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .footer {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 14px;
+            color: #64748b;
+        }
+        .powered-by {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        .cf-logo {
+            width: 20px;
+            height: 20px;
+        }
+        .action-button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 12px;
+            cursor: pointer;
+            display: block;
+            width: 100%;
+            transition: all 0.2s;
+            margin-top: 20px;
+        }
+        .action-button:hover {
+            background: #4338ca;
+            transform: translateY(-2px);
+        }
+        .action-button:active {
+            transform: translateY(1px);
+        }
+        .action-button:disabled {
+            background: #c7d2fe;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .hidden { display: none; }
+        
+        @media (max-width: 600px) {
+            .card {
+                border-radius: 16px;
+            }
+            .card-header {
+                padding: 25px 20px;
+            }
+            .card-body {
+                padding: 30px;
+            }
+            h1 {
+                font-size: 24px;
+            }
+            .result-message {
+                padding: 16px;
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="card-header">
+            <h1>安全验证</h1>
+            <p class="subtitle">请完成人机验证以继续</p>
+        </div>
+        
+        <div class="card-body">
+            <div class="status-container">
+                <div id="verification-widget">
+                    <div id="turnstile-container"></div>
+                </div>
+                
+                <div id="result-message" class="result-message"></div>
+            </div>
+            
+            <button id="reset-button" class="action-button hidden">重新验证</button>
+        </div>
+        
+        <div class="footer">
+            <p>此验证系统保护您的访问安全</p>
+            <div class="powered-by">
+                <svg class="cf-logo" viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M8.00039 0L12.8004 4.8L11.2004 6.4L8.00039 3.2L4.80039 6.4L3.20039 4.8L8.00039 0ZM4.80039 9.6L3.20039 11.2L8.00039 16L12.8004 11.2L11.2004 9.6L8.00039 12.8L4.80039 9.6Z"/>
+                </svg>
+                <span>Powered by Cloudflare Turnstile</span>
+            </div>
+        </div>
+    </div>
 
-<!-- 在表单中添加验证容器 -->
-<form action="http://rjyz.myproject.dpdns.org" method="POST">
-    <div class="cf-turnstile" data-sitekey="0x4AAAAAABimt1T7asd60UgX"></div>
-    <button type="submit">提交</button>
-</form>
+    <script>
+        // 配置参数 - 使用您提供的密钥
+        const CONFIG = {
+            siteKey: "0x4AAAAAABimt1T7asd60UgX",  // 您的站点密钥
+            verifyEndpoint: "http://rjyz.myproject.dpdns.org/" // 替换为您的验证端点
+        };
+
+        // DOM元素
+        const turnstileContainer = document.getElementById('turnstile-container');
+        const resultMessage = document.getElementById('result-message');
+        const resetButton = document.getElementById('reset-button');
+        let turnstileWidget;
+
+        // 显式渲染Turnstile组件
+        function renderTurnstile() {
+            turnstileContainer.innerHTML = "";
+            resultMessage.classList.remove('show');
+            resetButton.classList.add('hidden');
+            
+            turnstileWidget = window.turnstile.render('#turnstile-container', {
+                sitekey: CONFIG.siteKey,
+                theme: "light",
+                size: "normal",
+                retry: "auto",
+                language: "zh",
+                callback: function(token) {
+                    handleVerification(token);
+                },
+                'expired-callback': function() {
+                    showResult("<div class='icon'>⏳</div><div>验证已过期，请重新验证</div>", "error");
+                    resetButton.classList.remove('hidden');
+                },
+                'error-callback': function() {
+                    showResult("<div class='icon'>⚠️</div><div>验证失败，请重试</div>", "error");
+                    resetButton.classList.remove('hidden');
+                }
+            });
+        }
+
+        // 验证结果处理器
+        async function handleVerification(token) {
+            showResult("<div class='loading'></div><div>正在验证您的身份，请稍候...</div>", "loading");
+            
+            try {
+                const response = await fetch(CONFIG.verifyEndpoint, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ token: token })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`服务器错误: ${response.status}`);
+                }
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showResult("<div class='icon'>✅</div><div>验证成功！您是真实用户</div>", "success");
+                    // 验证成功后的操作（例如：重定向或显示内容）
+                    setTimeout(() => {
+                        // 这里可以添加成功后的跳转逻辑
+                        // window.location.href = "/success-page";
+                    }, 2000);
+                } else {
+                    showResult(`<div class='icon'>❌</div><div>验证失败：${result.message || '疑似机器人行为'}</div>`, "error");
+                    resetButton.classList.remove('hidden');
+                }
+            } catch (error) {
+                showResult(`<div class='icon'>⚠️</div><div>验证错误：${error.message}</div>`, "error");
+                resetButton.classList.remove('hidden');
+            }
+        }
+
+        // 显示验证结果
+        function showResult(html, type) {
+            resultMessage.innerHTML = html;
+            resultMessage.className = `result-message ${type}`;
+            setTimeout(() => resultMessage.classList.add('show'), 10);
+        }
+
+        // 重置验证
+        resetButton.addEventListener('click', function() {
+            renderTurnstile();
+        });
+
+        // Turnstile加载完成回调
+        window.onLoadCallback = function() {
+            renderTurnstile();
+        };
+    </script>
+</body>
+</html>
