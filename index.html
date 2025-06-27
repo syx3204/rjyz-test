@@ -24,6 +24,7 @@
             --gray: #94a3b8;
             --card-bg: rgba(255, 255, 255, 0.95);
             --transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            --transition-smooth: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
         
         body {
@@ -56,18 +57,21 @@
             overflow: hidden;
             box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
             transform-style: preserve-3d;
-            transition: var(--transition);
-            animation: cardAppear 0.8s ease-out forwards;
+            transition: var(--transition-smooth);
+            animation: cardAppear 0.8s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards;
         }
         
         @keyframes cardAppear {
             0% {
                 opacity: 0;
-                transform: translateY(30px) rotateX(5deg);
+                transform: translateY(30px) rotateX(5deg) scale(0.95);
+            }
+            70% {
+                transform: translateY(-10px) rotateX(-1deg) scale(1.02);
             }
             100% {
                 opacity: 1;
-                transform: translateY(0) rotateX(0);
+                transform: translateY(0) rotateX(0) scale(1);
             }
         }
         
@@ -89,6 +93,18 @@
             height: 200%;
             background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 70%);
             transform: rotate(30deg);
+            animation: shine 8s infinite;
+        }
+        
+        @keyframes shine {
+            0%, 100% {
+                opacity: 0.3;
+                transform: rotate(30deg) translate(-10%, -10%);
+            }
+            50% {
+                opacity: 0.5;
+                transform: rotate(30deg) translate(10%, 10%);
+            }
         }
         
         .logo {
@@ -102,11 +118,23 @@
             margin: 0 auto 15px;
             backdrop-filter: blur(5px);
             border: 2px solid rgba(255, 255, 255, 0.2);
+            animation: logoPulse 2s infinite alternate;
+        }
+        
+        @keyframes logoPulse {
+            from { transform: scale(0.95); }
+            to { transform: scale(1.05); }
         }
         
         .logo i {
             font-size: 30px;
             color: white;
+            animation: iconGlow 2s infinite alternate;
+        }
+        
+        @keyframes iconGlow {
+            from { text-shadow: 0 0 5px rgba(255,255,255,0.3); }
+            to { text-shadow: 0 0 15px rgba(255,255,255,0.7); }
         }
         
         h1 {
@@ -114,6 +142,12 @@
             font-size: 24px;
             margin-bottom: 8px;
             letter-spacing: 0.5px;
+            animation: textFloat 3s infinite ease-in-out;
+        }
+        
+        @keyframes textFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-3px); }
         }
         
         .subtitle {
@@ -145,7 +179,14 @@
             margin: 15px 0;
             background: #f8fafc;
             border-radius: 8px;
-            transition: var(--transition);
+            transition: var(--transition-smooth);
+            transform-origin: top center;
+            animation: containerAppear 0.6s ease-out forwards;
+        }
+        
+        @keyframes containerAppear {
+            0% { opacity: 0; transform: translateY(10px) scale(0.98); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
         }
         
         .loading-placeholder {
@@ -172,8 +213,8 @@
             padding: 18px;
             border-radius: 14px;
             opacity: 0;
-            transform: translateY(15px);
-            transition: var(--transition);
+            transform: translateY(15px) scale(0.95);
+            transition: var(--transition-smooth);
             display: flex;
             align-items: center;
             text-align: left;
@@ -196,7 +237,14 @@
         
         .result-message.show {
             opacity: 1;
-            transform: translateY(0);
+            transform: translateY(0) scale(1);
+            animation: messagePulse 0.8s ease-out;
+        }
+        
+        @keyframes messagePulse {
+            0% { transform: translateY(15px) scale(0.95); }
+            70% { transform: translateY(-5px) scale(1.03); }
+            100% { transform: translateY(0) scale(1); }
         }
         
         .success {
@@ -236,11 +284,12 @@
             cursor: pointer;
             display: block;
             width: 100%;
-            transition: var(--transition);
+            transition: var(--transition-smooth);
             margin-top: 15px;
             position: relative;
             overflow: hidden;
             box-shadow: 0 4px 6px rgba(79, 70, 229, 0.2);
+            transform: translateY(0);
         }
         
         .action-button:hover {
@@ -249,7 +298,7 @@
         }
         
         .action-button:active {
-            transform: translateY(1px);
+            transform: translateY(1px) scale(0.98);
         }
         
         .action-button::before {
@@ -261,6 +310,7 @@
             height: 100%;
             background: linear-gradient(to right, rgba(255,255,255,0.2), rgba(255,255,255,0));
             pointer-events: none;
+            transition: var(--transition);
         }
         
         .hidden {
@@ -276,6 +326,12 @@
             display: flex;
             flex-direction: column;
             align-items: center;
+            animation: fadeIn 1s 0.5s forwards;
+            opacity: 0;
+        }
+        
+        @keyframes fadeIn {
+            to { opacity: 1; }
         }
         
         .powered-by {
@@ -293,6 +349,12 @@
             width: 18px;
             height: 18px;
             color: var(--primary);
+            animation: logoFloat 3s infinite ease-in-out;
+        }
+        
+        @keyframes logoFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
         }
         
         .continue-button {
@@ -302,9 +364,18 @@
         }
         
         @keyframes pulse {
-            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
-            70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+            0% { 
+                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4),
+                            0 4px 15px rgba(16, 185, 129, 0.3);
+            }
+            70% { 
+                box-shadow: 0 0 0 10px rgba(16, 185, 129, 0),
+                            0 4px 15px rgba(16, 185, 129, 0.3);
+            }
+            100% { 
+                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0),
+                            0 4px 15px rgba(16, 185, 129, 0.3);
+            }
         }
         
         .success-message {
@@ -313,6 +384,30 @@
             font-size: 16px;
             color: var(--success);
             font-weight: 500;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: var(--transition-smooth);
+        }
+        
+        .success-message.show {
+            opacity: 1;
+            transform: translateY(0);
+            animation: successPop 0.6s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+        }
+        
+        @keyframes successPop {
+            0% { transform: translateY(10px) scale(0.8); opacity: 0; }
+            70% { transform: translateY(-5px) scale(1.1); }
+            100% { transform: translateY(0) scale(1); opacity: 1; }
+        }
+        
+        .bounce {
+            animation: bounce 0.5s;
+        }
+        
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
         }
         
         @media (max-width: 600px) {
@@ -387,13 +482,18 @@
     </div>
 
     <script>
-        // 配置参数
+        // 从环境变量中获取配置
         const CONFIG = {
-            siteKey: "0x4AAAAAABimt1T7asd60UgX",
-            verifyEndpoint: "https://rjyz.myproject.dpdns.org/",
-            eventId: "turnstile-verification-success",
+            siteKey: process.env.SITE_KEY || "0x4AAAAAABimt1T7asd60UgX",
+            verifyEndpoint: process.env.VERIFY_ENDPOINT || "https://rjyz.myproject.dpdns.org/",
+            eventId: process.env.EVENT_ID || "turnstile-verification-success",
             messageSource: "AerIframe"
         };
+
+        // 在开发环境打印配置以便调试
+        if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+            console.log("当前配置:", CONFIG);
+        }
 
         // DOM元素
         const turnstileContainer = document.getElementById('turnstile-container');
@@ -414,7 +514,7 @@
             resultMessage.classList.add('hidden');
             resetButton.classList.add('hidden');
             continueButton.classList.add('hidden');
-            successMessage.classList.add('hidden');
+            successMessage.classList.remove('show');
             
             // 重置状态
             verificationCompleted = false;
@@ -475,12 +575,19 @@
                     
                     // 显示成功状态
                     resultMessage.classList.add('hidden');
-                    successMessage.classList.remove('hidden');
+                    successMessage.classList.add('show');
                     continueButton.classList.remove('hidden');
+                    
+                    // 添加弹跳动画
+                    continueButton.classList.add('bounce');
+                    setTimeout(() => {
+                        continueButton.classList.remove('bounce');
+                    }, 500);
                     
                     // 隐藏验证框
                     turnstileContainer.style.opacity = "0.5";
                     turnstileContainer.style.pointerEvents = "none";
+                    turnstileContainer.style.transform = "scale(0.95)";
                 } else {
                     showResult("<i class='fas fa-times-circle'></i>", `验证失败：${result.message || '疑似机器人行为'}`, "error");
                     resetButton.classList.remove('hidden');
@@ -506,12 +613,14 @@
             // 添加当前状态类
             resultMessage.classList.add(type);
             resultMessage.classList.remove('hidden');
+            resultMessage.classList.add('show');
         }
 
         // 重置验证
         resetButton.addEventListener('click', function() {
             turnstileContainer.style.opacity = "1";
             turnstileContainer.style.pointerEvents = "auto";
+            turnstileContainer.style.transform = "scale(1)";
             renderTurnstile();
         });
 
@@ -527,12 +636,13 @@
             // 显示消息已发送
             showResult("<i class='fas fa-paper-plane'></i>", "验证成功消息已发送", "success");
             continueButton.classList.add('hidden');
-            successMessage.classList.add('hidden');
+            successMessage.classList.remove('show');
             
             // 3秒后重置
             setTimeout(() => {
                 turnstileContainer.style.opacity = "1";
                 turnstileContainer.style.pointerEvents = "auto";
+                turnstileContainer.style.transform = "scale(1)";
                 renderTurnstile();
             }, 3000);
         });
