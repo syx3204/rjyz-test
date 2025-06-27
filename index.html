@@ -521,10 +521,7 @@
             parent.postMessage({
                 source: CONFIG.messageSource,
                 id: CONFIG.eventId,
-                data: {
-                    message: "人机验证成功",
-                    timestamp: new Date().toISOString()
-                }
+                data: "人机验证成功"
             }, '*');
             
             // 显示消息已发送
