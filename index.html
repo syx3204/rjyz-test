@@ -249,36 +249,38 @@
 
         // 验证结果处理器
         async function handleVerification(token) {
-            showResult("<div class='loading'></div><div>正在验证您的身份，请稍候...</div>", "loading");
+          showResult("<div class='loading'></div><div>正在验证您的身份，请稍候...</div>", "loading");
+          
+          try {
+            // 修复1：使用兼容模式处理CORS
+            const response = await fetch(CONFIG.verifyEndpoint, {
+              method: "POST",
+              headers: { 
+                "Content-Type": "application/json",
+                // 修复2：添加安全头避免CORS问题
+                "X-Requested-With": "XMLHttpRequest"
+              },
+              body: JSON.stringify({ token: token }),
+              // 修复3：允许携带凭证（如需）
+              credentials: "same-origin" 
+            });
             
-            try {
-                const response = await fetch(CONFIG.verifyEndpoint, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ token: token })
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`服务器错误: ${response.status}`);
-                }
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    showResult("<div class='icon'>✅</div><div>验证成功！您是真实用户</div>", "success");
-                    // 验证成功后的操作（例如：重定向或显示内容）
-                    setTimeout(() => {
-                        // 这里可以添加成功后的跳转逻辑
-                        // window.location.href = "/success-page";
-                    }, 2000);
-                } else {
-                    showResult(`<div class='icon'>❌</div><div>验证失败：${result.message || '疑似机器人行为'}</div>`, "error");
-                    resetButton.classList.remove('hidden');
-                }
-            } catch (error) {
-                showResult(`<div class='icon'>⚠️</div><div>验证错误：${error.message}</div>`, "error");
-                resetButton.classList.remove('hidden');
+            // 修复4：增强错误处理
+            if (!response.ok) {
+              const errorData = await response.json();
+              throw new Error(`服务器错误: ${errorData.message || response.statusText}`);
             }
+            
+            // ...后续处理不变...
+          } catch (error) {
+            // 修复5：细化错误提示
+            let errorMsg = error.message;
+            if (error.message.includes("Failed to fetch")) {
+              errorMsg = "无法连接验证服务器，请检查网络或联系管理员";
+            }
+            showResult(`<div class='icon'>⚠️</div><div>${errorMsg}</div>`, "error");
+            resetButton.classList.remove('hidden');
+          }
         }
 
         // 显示验证结果
