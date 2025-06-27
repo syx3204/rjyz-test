@@ -3,60 +3,551 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cloudflare Turnstile 验证系统</title>
+    <title>安全验证 | Cloudflare Turnstile</title>
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=onLoadCallback" async defer></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* 样式保持不变（省略重复部分） */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        :root {
+            --primary: #4f46e5;
+            --primary-light: #818cf8;
+            --success: #10b981;
+            --error: #ef4444;
+            --warning: #f59e0b;
+            --dark: #1e293b;
+            --light: #f8fafc;
+            --gray: #94a3b8;
+            --card-bg: rgba(255, 255, 255, 0.95);
+            --transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        
+        body {
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6, #d946ef);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            padding: 20px;
+            color: var(--dark);
+        }
+        
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 500px;
+            perspective: 1000px;
+        }
+        
+        .card {
+            background: var(--card-bg);
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            transform-style: preserve-3d;
+            transition: var(--transition);
+            animation: cardAppear 0.8s ease-out forwards;
+        }
+        
+        @keyframes cardAppear {
+            0% {
+                opacity: 0;
+                transform: translateY(50px) rotateX(10deg);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0) rotateX(0);
+            }
+        }
+        
+        .card-header {
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            color: white;
+            padding: 30px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .card-header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 70%);
+            transform: rotate(30deg);
+        }
+        
+        .logo {
+            width: 80px;
+            height: 80px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0 auto 20px;
+            backdrop-filter: blur(5px);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .logo i {
+            font-size: 36px;
+            color: white;
+        }
+        
+        h1 {
+            font-weight: 700;
+            font-size: 28px;
+            margin-bottom: 8px;
+            letter-spacing: 0.5px;
+        }
+        
+        .subtitle {
+            opacity: 0.9;
+            font-size: 16px;
+            font-weight: 400;
+        }
+        
+        .card-body {
+            padding: 40px;
+        }
+        
+        .status-container {
+            min-height: 220px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            margin: 20px 0;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        #verification-widget {
+            display: flex;
+            justify-content: center;
+            margin: 25px 0;
+            transition: var(--transition);
+        }
+        
+        #turnstile-container {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            transition: var(--transition);
+        }
+        
+        .result-message {
+            font-size: 18px;
+            font-weight: 500;
+            padding: 20px;
+            border-radius: 16px;
+            opacity: 0;
+            transform: translateY(15px);
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            text-align: left;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .result-message::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: currentColor;
+            opacity: 0.05;
+            z-index: 0;
+        }
+        
+        .result-message.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .success {
+            color: var(--success);
+        }
+        
+        .error {
+            color: var(--error);
+        }
+        
+        .loading {
+            color: var(--primary);
+        }
+        
+        .icon {
+            font-size: 28px;
+            margin-right: 15px;
+            flex-shrink: 0;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .message-content {
+            position: relative;
+            z-index: 1;
+            line-height: 1.6;
+        }
+        
+        .action-button {
+            background: linear-gradient(to right, var(--primary), var(--primary-light));
+            color: white;
+            border: none;
+            padding: 16px 32px;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 12px;
+            cursor: pointer;
+            display: block;
+            width: 100%;
+            transition: var(--transition);
+            margin-top: 20px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(79, 70, 229, 0.2);
+        }
+        
+        .action-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(79, 70, 229, 0.3);
+        }
+        
+        .action-button:active {
+            transform: translateY(1px);
+        }
+        
+        .action-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to right, rgba(255,255,255,0.2), rgba(255,255,255,0));
+            pointer-events: none;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            font-size: 14px;
+            color: var(--gray);
+            padding: 20px;
+            border-top: 1px solid rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .powered-by {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 10px;
+            color: var(--dark);
+            font-weight: 500;
+        }
+        
+        .cf-logo {
+            width: 20px;
+            height: 20px;
+            color: var(--primary);
+        }
+        
+        .success-animation {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 30px auto;
+        }
+        
+        .checkmark {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            display: block;
+            stroke-width: 3;
+            stroke: var(--success);
+            stroke-miterlimit: 10;
+            box-shadow: inset 0px 0px 0px var(--success);
+            animation: fill 0.4s ease-in-out 0.4s forwards, scale 0.3s ease-in-out 0.9s both;
+        }
+        
+        .checkmark-circle {
+            stroke-dasharray: 166;
+            stroke-dashoffset: 166;
+            stroke-width: 3;
+            stroke-miterlimit: 10;
+            stroke: var(--success);
+            fill: none;
+            animation: stroke 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+        }
+        
+        .checkmark-check {
+            transform-origin: 50% 50%;
+            stroke-dasharray: 48;
+            stroke-dashoffset: 48;
+            animation: stroke 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.8s forwards;
+        }
+        
+        @keyframes stroke {
+            100% { stroke-dashoffset: 0; }
+        }
+        
+        @keyframes scale {
+            0%, 100% { transform: none; }
+            50% { transform: scale3d(1.1, 1.1, 1); }
+        }
+        
+        @keyframes fill {
+            100% { box-shadow: inset 0px 0px 0px 40px rgba(16, 185, 129, 0); }
+        }
+        
+        .progress-container {
+            width: 100%;
+            height: 8px;
+            background: rgba(79, 70, 229, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 15px;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(to right, var(--primary), var(--primary-light));
+            width: 0%;
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+        
+        .protected-content {
+            max-height: 0;
+            overflow: hidden;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: var(--transition);
+            background: rgba(241, 245, 249, 0.5);
+            border-radius: 16px;
+            padding: 0;
+            margin-top: 0;
+        }
+        
+        .protected-content.show {
+            max-height: 500px;
+            opacity: 1;
+            transform: translateY(0);
+            padding: 25px;
+            margin-top: 25px;
+        }
+        
+        .content-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .content-header i {
+            font-size: 24px;
+            color: var(--success);
+            margin-right: 12px;
+        }
+        
+        .content-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .content-item {
+            background: white;
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            transition: var(--transition);
+        }
+        
+        .content-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .content-item i {
+            font-size: 32px;
+            color: var(--primary);
+            margin-bottom: 10px;
+        }
+        
+        .content-item h3 {
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+        
+        .content-item p {
+            font-size: 14px;
+            color: var(--gray);
+        }
+        
+        @media (max-width: 600px) {
+            .card-header {
+                padding: 25px 20px;
+            }
+            
+            .card-body {
+                padding: 30px;
+            }
+            
+            h1 {
+                font-size: 24px;
+            }
+            
+            .result-message {
+                padding: 16px;
+                font-size: 16px;
+            }
+        }
     </style>
 </head>
 <body>
-    <div class="card">
-        <div class="card-header">
-            <h1>安全验证</h1>
-            <p class="subtitle">请完成人机验证以继续</p>
-        </div>
-        
-        <div class="card-body">
-            <div class="status-container">
-                <div id="verification-widget">
-                    <div id="turnstile-container"></div>
+    <div class="container">
+        <div class="card">
+            <div class="card-header">
+                <div class="logo">
+                    <i class="fas fa-shield-alt"></i>
                 </div>
-                
-                <div id="result-message" class="result-message"></div>
+                <h1>安全验证</h1>
+                <p class="subtitle">请完成人机验证以继续</p>
             </div>
             
-            <button id="reset-button" class="action-button hidden">重新验证</button>
-        </div>
-        
-        <div class="footer">
-            <p>此验证系统保护您的访问安全</p>
-            <div class="powered-by">
-                <svg class="cf-logo" viewBox="0 0 16 16" fill="currentColor">
-                    <path d="M8.00039 0L12.8004 4.8L11.2004 6.4L8.00039 3.2L4.80039 6.4L3.20039 4.8L8.00039 0ZM4.80039 9.6L3.20039 11.2L8.00039 16L12.8004 11.2L11.2004 9.6L8.00039 12.8L4.80039 9.6Z"/>
-                </svg>
-                <span>Powered by Cloudflare Turnstile</span>
+            <div class="card-body">
+                <div class="status-container">
+                    <div id="verification-widget">
+                        <div id="turnstile-container"></div>
+                    </div>
+                    
+                    <div id="result-message" class="result-message">
+                        <div class="icon"></div>
+                        <div class="message-content"></div>
+                    </div>
+                    
+                    <div class="success-animation hidden" id="success-animation">
+                        <svg class="checkmark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
+                            <circle class="checkmark-circle" cx="26" cy="26" r="25" fill="none"/>
+                            <path class="checkmark-check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+                        </svg>
+                    </div>
+                    
+                    <div class="progress-container hidden" id="progress-container">
+                        <div class="progress-bar" id="progress-bar"></div>
+                    </div>
+                </div>
+                
+                <button id="reset-button" class="action-button hidden">
+                    <i class="fas fa-sync-alt"></i> 重新验证
+                </button>
+                
+                <div class="protected-content" id="protected-content">
+                    <div class="content-header">
+                        <i class="fas fa-lock-open"></i>
+                        <h2>验证成功！您现在可以访问以下内容</h2>
+                    </div>
+                    <p>您的身份已通过验证，现在可以安全访问我们的平台内容。</p>
+                    
+                    <div class="content-grid">
+                        <div class="content-item">
+                            <i class="fas fa-user"></i>
+                            <h3>个人资料</h3>
+                            <p>查看和编辑您的个人账户信息</p>
+                        </div>
+                        <div class="content-item">
+                            <i class="fas fa-history"></i>
+                            <h3>历史记录</h3>
+                            <p>查看您的活动和使用历史</p>
+                        </div>
+                        <div class="content-item">
+                            <i class="fas fa-cog"></i>
+                            <h3>设置</h3>
+                            <p>自定义您的偏好和设置</p>
+                        </div>
+                        <div class="content-item">
+                            <i class="fas fa-download"></i>
+                            <h3>下载中心</h3>
+                            <p>访问您购买或订阅的内容</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="footer">
+                <p>此验证系统保护您的访问安全，防止自动化程序滥用</p>
+                <div class="powered-by">
+                    <svg class="cf-logo" viewBox="0 0 16 16" fill="currentColor">
+                        <path d="M8.00039 0L12.8004 4.8L11.2004 6.4L8.00039 3.2L4.80039 6.4L3.20039 4.8L8.00039 0ZM4.80039 9.6L3.20039 11.2L8.00039 16L12.8004 11.2L11.2004 9.6L8.00039 12.8L4.80039 9.6Z"/>
+                    </svg>
+                    <span>Powered by Cloudflare Turnstile</span>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
-        // 配置参数 - 使用您提供的密钥
+        // 配置参数
         const CONFIG = {
-            siteKey: "0x4AAAAAABimt1T7asd60UgX",  // 您的站点密钥
-            verifyEndpoint: "https://rjyz.myproject.dpdns.org/" // 验证端点
+            siteKey: "0x4AAAAAABimt1T7asd60UgX",
+            verifyEndpoint: "https://rjyz.myproject.dpdns.org/"
         };
 
         // DOM元素
         const turnstileContainer = document.getElementById('turnstile-container');
         const resultMessage = document.getElementById('result-message');
+        const messageContent = resultMessage.querySelector('.message-content');
+        const messageIcon = resultMessage.querySelector('.icon');
         const resetButton = document.getElementById('reset-button');
+        const successAnimation = document.getElementById('success-animation');
+        const progressContainer = document.getElementById('progress-container');
+        const progressBar = document.getElementById('progress-bar');
+        const protectedContent = document.getElementById('protected-content');
+        
         let turnstileWidget;
+        let verificationCompleted = false;
 
         // 显式渲染Turnstile组件
         function renderTurnstile() {
             turnstileContainer.innerHTML = "";
             resultMessage.classList.remove('show');
             resetButton.classList.add('hidden');
+            successAnimation.classList.add('hidden');
+            progressContainer.classList.add('hidden');
+            
+            // 重置状态
+            verificationCompleted = false;
+            protectedContent.classList.remove('show');
             
             turnstileWidget = window.turnstile.render('#turnstile-container', {
                 sitekey: CONFIG.siteKey,
@@ -68,21 +559,27 @@
                     handleVerification(token);
                 },
                 'expired-callback': function() {
-                    showResult("<div class='icon'>⏳</div><div>验证已过期，请重新验证</div>", "error");
+                    showResult("<i class='fas fa-hourglass-half'></i>", "验证已过期，请重新验证", "warning");
                     resetButton.classList.remove('hidden');
                 },
                 'error-callback': function() {
-                    showResult("<div class='icon'>⚠️</div><div>验证失败，请重试</div>", "error");
+                    showResult("<i class='fas fa-exclamation-triangle'></i>", "验证失败，请重试", "error");
                     resetButton.classList.remove('hidden');
                 }
             });
         }
 
-        // 验证结果处理器 - 修复点
+        // 验证结果处理器
         async function handleVerification(token) {
-            showResult("<div class='loading'></div><div>正在验证您的身份，请稍候...</div>", "loading");
+            showResult("<i class='fas fa-spinner fa-spin'></i>", "正在验证您的身份，请稍候...", "loading");
+            progressContainer.classList.remove('hidden');
+            progressBar.style.width = '30%';
             
             try {
+                // 模拟延迟以展示进度条动画
+                await new Promise(resolve => setTimeout(resolve, 800));
+                progressBar.style.width = '60%';
+                
                 const response = await fetch(CONFIG.verifyEndpoint, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -93,50 +590,65 @@
                     throw new Error(`服务器错误: ${response.status}`);
                 }
                 
+                progressBar.style.width = '90%';
                 const result = await response.json();
                 
+                // 模拟处理延迟
+                await new Promise(resolve => setTimeout(resolve, 600));
+                
                 if (result.success) {
-                    // ======= 修复点1: 显示成功消息 =======
-                    showResult("<div class='icon'>✅</div><div>验证成功！您是真实用户</div>", "success");
+                    // 验证成功处理
+                    verificationCompleted = true;
+                    progressBar.style.width = '100%';
                     
-                    // ======= 修复点2: 添加成功后的操作 =======
-                    // 3秒后自动隐藏验证组件
+                    // 显示成功动画
+                    resultMessage.classList.remove('show');
+                    successAnimation.classList.remove('hidden');
+                    
+                    // 显示成功消息
                     setTimeout(() => {
-                        document.getElementById('verification-widget').style.display = 'none';
+                        showResult("<i class='fas fa-check-circle'></i>", "验证成功！您是真实用户", "success");
+                        progressContainer.classList.add('hidden');
                         
-                        // 显示后续内容（例如：显示被保护的内容）
-                        resultMessage.innerHTML += '<div style="margin-top:20px;font-size:16px;">正在为您加载受保护的内容...</div>';
-                        
-                        // 实际应用中这里可以跳转或显示隐藏内容
-                        // window.location.href = "/protected-page";
-                    }, 3000);
-                    
+                        // 显示受保护内容
+                        setTimeout(() => {
+                            protectedContent.classList.add('show');
+                        }, 800);
+                    }, 1500);
                 } else {
-                    showResult(`<div class='icon'>❌</div><div>验证失败：${result.message || '疑似机器人行为'}</div>`, "error");
+                    showResult("<i class='fas fa-times-circle'></i>", `验证失败：${result.message || '疑似机器人行为'}`, "error");
                     resetButton.classList.remove('hidden');
+                    progressContainer.classList.add('hidden');
                 }
             } catch (error) {
-                // ======= 修复点3: 增强错误处理 =======
                 let errorMsg = error.message;
                 if (error.message.includes("Failed to fetch")) {
                     errorMsg = "无法连接验证服务器，请检查网络或联系管理员";
                 }
-                showResult(`<div class='icon'>⚠️</div><div>${errorMsg}</div>`, "error");
+                showResult("<i class='fas fa-exclamation-circle'></i>", errorMsg, "error");
                 resetButton.classList.remove('hidden');
+                progressContainer.classList.add('hidden');
             }
         }
 
         // 显示验证结果
-        function showResult(html, type) {
-            resultMessage.innerHTML = html;
-            resultMessage.className = `result-message ${type}`;
-            setTimeout(() => resultMessage.classList.add('show'), 10);
+        function showResult(icon, text, type) {
+            messageIcon.innerHTML = icon;
+            messageContent.innerHTML = text;
+            
+            // 移除所有状态类
+            resultMessage.classList.remove('success', 'error', 'loading', 'warning');
+            
+            // 添加当前状态类
+            if (type) {
+                resultMessage.classList.add(type);
+            }
+            
+            resultMessage.classList.add('show');
         }
 
         // 重置验证
         resetButton.addEventListener('click', function() {
-            // ======= 修复点4: 重置时显示验证组件 =======
-            document.getElementById('verification-widget').style.display = 'block';
             renderTurnstile();
         });
 
@@ -144,6 +656,29 @@
         window.onLoadCallback = function() {
             renderTurnstile();
         };
+
+        // 添加卡片悬停效果
+        const card = document.querySelector('.card');
+        card.addEventListener('mousemove', (e) => {
+            if (verificationCompleted) return;
+            
+            const rect = card.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            const centerX = rect.width / 2;
+            const centerY = rect.height / 2;
+            
+            const angleY = (x - centerX) / 25;
+            const angleX = (centerY - y) / 25;
+            
+            card.style.transform = `perspective(1000px) rotateX(${angleX}deg) rotateY(${angleY}deg) scale(1.02)`;
+        });
+        
+        card.addEventListener('mouseleave', () => {
+            if (verificationCompleted) return;
+            card.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) scale(1)';
+        });
     </script>
 </body>
 </html>
