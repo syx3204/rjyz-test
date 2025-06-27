@@ -3,15 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>人机验证系统</title>
-    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
+    <title>安全验证 | Cloudflare Turnstile</title>
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=onLoadCallback" async defer></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        :root {
+            --primary: #4f46e5;
+            --primary-light: #818cf8;
+            --success: #10b981;
+            --error: #ef4444;
+            --dark: #1e293b;
+            --light: #f8fafc;
+            --gray: #94a3b8;
+            --card-bg: rgba(255, 255, 255, 0.95);
+            --transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
         
         body {
@@ -19,40 +31,56 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            background: linear-gradient(135deg, #6366f1, #8b5cf6, #d946ef);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
             padding: 20px;
-            color: #333;
+            color: var(--dark);
         }
         
-        .verification-container {
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        .container {
             width: 100%;
-            max-width: 480px;
-            background: rgba(255, 255, 255, 0.95);
+            max-width: 420px;
+            perspective: 1000px;
+        }
+        
+        .card {
+            background: var(--card-bg);
             border-radius: 20px;
-            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.2);
             overflow: hidden;
-            animation: cardAppear 0.8s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
-            transform: translateY(30px);
-            opacity: 0;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
+            transform-style: preserve-3d;
+            transition: var(--transition);
+            animation: cardAppear 0.8s ease-out forwards;
         }
         
         @keyframes cardAppear {
-            to {
-                transform: translateY(0);
+            0% {
+                opacity: 0;
+                transform: translateY(30px) rotateX(5deg);
+            }
+            100% {
                 opacity: 1;
+                transform: translateY(0) rotateX(0);
             }
         }
         
-        .header {
-            padding: 35px 30px 25px;
-            text-align: center;
-            background: linear-gradient(135deg, #4b6cb7 0%, #182848 100%);
+        .card-header {
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
             color: white;
+            padding: 25px;
+            text-align: center;
             position: relative;
             overflow: hidden;
         }
         
-        .header::before {
+        .card-header::before {
             content: '';
             position: absolute;
             top: -50%;
@@ -63,106 +91,75 @@
             transform: rotate(30deg);
         }
         
-        .icon-container {
-            width: 80px;
-            height: 80px;
-            margin: 0 auto 15px;
-            background: rgba(255, 255, 255, 0.15);
+        .logo {
+            width: 70px;
+            height: 70px;
+            background: rgba(255, 255, 255, 0.1);
             border-radius: 50%;
             display: flex;
             justify-content: center;
             align-items: center;
+            margin: 0 auto 15px;
             backdrop-filter: blur(5px);
-            border: 2px solid rgba(255, 255, 255, 0.25);
+            border: 2px solid rgba(255, 255, 255, 0.2);
         }
         
-        .icon-container i {
-            font-size: 36px;
+        .logo i {
+            font-size: 30px;
             color: white;
         }
         
         h1 {
-            font-size: 28px;
             font-weight: 700;
+            font-size: 24px;
             margin-bottom: 8px;
             letter-spacing: 0.5px;
         }
         
         .subtitle {
-            font-size: 16px;
             opacity: 0.9;
+            font-size: 15px;
             font-weight: 400;
         }
         
-        .content {
-            padding: 35px 30px;
+        .card-body {
+            padding: 30px;
         }
         
-        .verification-section {
+        .status-container {
             min-height: 180px;
             display: flex;
             flex-direction: column;
             justify-content: center;
+            margin: 15px 0;
             position: relative;
+            overflow: hidden;
         }
         
         #turnstile-container {
+            width: 100%;
             display: flex;
             justify-content: center;
-            margin: 15px 0;
-            transition: all 0.4s ease;
-        }
-        
-        .result-container {
-            padding: 20px;
-            border-radius: 16px;
-            margin-top: 20px;
-            display: flex;
+            min-height: 65px;
             align-items: center;
-            background: rgba(241, 245, 249, 0.8);
-            border-left: 4px solid #4b6cb7;
-            opacity: 0;
-            transform: translateY(10px);
-            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            margin: 15px 0;
+            background: #f8fafc;
+            border-radius: 8px;
+            transition: var(--transition);
         }
         
-        .result-container.show {
-            opacity: 1;
-            transform: translateY(0);
+        .loading-placeholder {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px;
+            color: var(--primary);
         }
         
-        .result-container.success {
-            border-left-color: #10b981;
-            background: rgba(16, 185, 129, 0.1);
-        }
-        
-        .result-container.error {
-            border-left-color: #ef4444;
-            background: rgba(239, 68, 68, 0.1);
-        }
-        
-        .result-icon {
-            font-size: 28px;
-            margin-right: 15px;
-            width: 50px;
-            text-align: center;
-        }
-        
-        .result-icon i {
-            vertical-align: middle;
-        }
-        
-        .success-icon {
-            color: #10b981;
-        }
-        
-        .error-icon {
-            color: #ef4444;
-        }
-        
-        .loading-icon {
-            color: #4b6cb7;
-            animation: spin 1s infinite linear;
+        .loading-placeholder i {
+            font-size: 24px;
+            margin-bottom: 10px;
+            animation: spin 1.5s infinite linear;
         }
         
         @keyframes spin {
@@ -170,32 +167,85 @@
         }
         
         .result-message {
-            font-size: 18px;
+            font-size: 17px;
             font-weight: 500;
-            line-height: 1.5;
+            padding: 18px;
+            border-radius: 14px;
+            opacity: 0;
+            transform: translateY(15px);
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            text-align: left;
+            position: relative;
+            margin: 15px 0;
+            overflow: hidden;
+        }
+        
+        .result-message::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: currentColor;
+            opacity: 0.05;
+            z-index: 0;
+        }
+        
+        .result-message.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .success {
+            color: var(--success);
+        }
+        
+        .error {
+            color: var(--error);
+        }
+        
+        .loading {
+            color: var(--primary);
+        }
+        
+        .icon {
+            font-size: 24px;
+            margin-right: 12px;
+            flex-shrink: 0;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .message-content {
+            position: relative;
+            z-index: 1;
+            line-height: 1.6;
         }
         
         .action-button {
-            background: linear-gradient(to right, #4b6cb7, #182848);
+            background: linear-gradient(to right, var(--primary), var(--primary-light));
             color: white;
             border: none;
-            padding: 16px 24px;
+            padding: 14px 28px;
             font-size: 16px;
             font-weight: 600;
             border-radius: 12px;
             cursor: pointer;
             display: block;
             width: 100%;
-            margin-top: 20px;
-            transition: all 0.3s ease;
+            transition: var(--transition);
+            margin-top: 15px;
             position: relative;
             overflow: hidden;
-            box-shadow: 0 4px 15px rgba(75, 108, 183, 0.3);
+            box-shadow: 0 4px 6px rgba(79, 70, 229, 0.2);
         }
         
         .action-button:hover {
             transform: translateY(-3px);
-            box-shadow: 0 6px 20px rgba(75, 108, 183, 0.4);
+            box-shadow: 0 6px 12px rgba(79, 70, 229, 0.3);
         }
         
         .action-button:active {
@@ -213,20 +263,19 @@
             pointer-events: none;
         }
         
-        .action-button i {
-            margin-right: 10px;
-        }
-        
         .hidden {
             display: none;
         }
         
         .footer {
             text-align: center;
-            padding: 25px 20px;
-            color: #64748b;
+            margin-top: 25px;
             font-size: 14px;
-            border-top: 1px solid rgba(0, 0, 0, 0.05);
+            color: var(--gray);
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
         
         .powered-by {
@@ -234,146 +283,105 @@
             align-items: center;
             justify-content: center;
             gap: 8px;
-            margin-top: 10px;
+            margin-top: 8px;
+            color: var(--dark);
             font-weight: 500;
-            color: #4b6cb7;
+            font-size: 13px;
         }
         
         .cf-logo {
-            width: 20px;
-            height: 20px;
+            width: 18px;
+            height: 18px;
+            color: var(--primary);
         }
         
-        .progress-container {
-            width: 100%;
-            height: 6px;
-            background: rgba(75, 108, 183, 0.15);
-            border-radius: 3px;
-            overflow: hidden;
+        .continue-button {
+            background: linear-gradient(to right, var(--success), #0da674);
             margin-top: 20px;
-            display: none;
+            animation: pulse 2s infinite;
         }
         
-        .progress-bar {
-            height: 100%;
-            background: linear-gradient(to right, #4b6cb7, #182848);
-            width: 0%;
-            border-radius: 3px;
-            transition: width 0.4s ease;
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
         }
         
-        .message-sent {
-            background: rgba(16, 185, 129, 0.1);
-            border: 1px solid rgba(16, 185, 129, 0.3);
-            border-radius: 12px;
-            padding: 15px;
-            margin-top: 20px;
-            display: none;
-        }
-        
-        .message-sent.show {
-            display: block;
-            animation: fadeIn 0.5s ease;
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-        
-        .message-content {
-            font-family: monospace;
-            background: #f8fafc;
-            padding: 15px;
-            border-radius: 8px;
-            margin-top: 10px;
-            font-size: 14px;
-            white-space: pre-wrap;
-            word-break: break-all;
+        .success-message {
+            text-align: center;
+            margin: 15px 0;
+            font-size: 16px;
+            color: var(--success);
+            font-weight: 500;
         }
         
         @media (max-width: 600px) {
-            .header {
-                padding: 25px 20px 15px;
+            .card-header {
+                padding: 20px 15px;
             }
             
-            .content {
-                padding: 25px 20px;
+            .card-body {
+                padding: 20px;
             }
             
             h1 {
-                font-size: 24px;
-            }
-            
-            .icon-container {
-                width: 70px;
-                height: 70px;
-            }
-            
-            .icon-container i {
-                font-size: 30px;
-            }
-            
-            .result-container {
-                padding: 15px;
-            }
-            
-            .result-icon {
-                font-size: 24px;
-                margin-right: 12px;
+                font-size: 22px;
             }
             
             .result-message {
+                padding: 14px;
                 font-size: 16px;
             }
         }
     </style>
 </head>
 <body>
-    <div class="verification-container">
-        <div class="header">
-            <div class="icon-container">
-                <i class="fas fa-shield-alt"></i>
-            </div>
-            <h1>安全验证</h1>
-            <p class="subtitle">请完成人机验证以继续</p>
-        </div>
-        
-        <div class="content">
-            <div class="verification-section">
-                <div id="turnstile-container"></div>
-                
-                <div class="progress-container" id="progress-container">
-                    <div class="progress-bar" id="progress-bar"></div>
+    <div class="container">
+        <div class="card">
+            <div class="card-header">
+                <div class="logo">
+                    <i class="fas fa-shield-alt"></i>
                 </div>
-                
-                <div class="result-container" id="result-container">
-                    <div class="result-icon">
-                        <i class="fas fa-spinner loading-icon" id="loading-icon"></i>
-                        <i class="fas fa-check-circle success-icon hidden" id="success-icon"></i>
-                        <i class="fas fa-exclamation-circle error-icon hidden" id="error-icon"></i>
+                <h1>安全验证</h1>
+                <p class="subtitle">请完成人机验证以继续</p>
+            </div>
+            
+            <div class="card-body">
+                <div class="status-container">
+                    <div id="turnstile-container">
+                        <div class="loading-placeholder">
+                            <i class="fas fa-spinner"></i>
+                            <p>正在加载验证系统...</p>
+                        </div>
                     </div>
-                    <div class="result-message" id="result-message">请完成人机验证</div>
-                </div>
-                
-                <button id="action-button" class="action-button hidden">
-                    <i class="fas fa-sync-alt"></i> 重新验证
-                </button>
-                
-                <div class="message-sent" id="message-sent">
-                    <p><i class="fas fa-paper-plane"></i> 验证成功消息：</p>
-                    <div class="message-content" id="message-content"></div>
+                    
+                    <div id="result-message" class="result-message hidden">
+                        <div class="icon"></div>
+                        <div class="message-content"></div>
+                    </div>
+                    
+                    <div id="success-message" class="success-message hidden">
+                        <i class="fas fa-check-circle"></i> 验证成功！
+                    </div>
+                    
+                    <button id="continue-button" class="action-button continue-button hidden">
+                        <i class="fas fa-arrow-right"></i> 点击继续
+                    </button>
+                    
+                    <button id="reset-button" class="action-button hidden">
+                        <i class="fas fa-sync-alt"></i> 重新验证
+                    </button>
                 </div>
             </div>
-        </div>
-        
-        <div class="footer">
-            <p>此验证系统保护您的访问安全</p>
-            <div class="powered-by">
-                <svg class="cf-logo" viewBox="0 0 16 16" fill="currentColor">
-                    <path d="M8.00039 0L12.8004 4.8L11.2004 6.4L8.00039 3.2L4.80039 6.4L3.20039 4.8L8.00039 0ZM4.80039 9.6L3.20039 11.2L8.00039 16L12.8004 11.2L11.2004 9.6L8.00039 12.8L4.80039 9.6Z"/>
-                </svg>
-                <span>Powered by Cloudflare Turnstile</span>
+            
+            <div class="footer">
+                <p>此验证系统保护您的访问安全</p>
+                <div class="powered-by">
+                    <svg class="cf-logo" viewBox="0 0 16 16" fill="currentColor">
+                        <path d="M8.00039 0L12.8004 4.8L11.2004 6.4L8.00039 3.2L4.80039 6.4L3.20039 4.8L8.00039 0ZM4.80039 9.6L3.20039 11.2L8.00039 16L12.8004 11.2L11.2004 9.6L8.00039 12.8L4.80039 9.6Z"/>
+                    </svg>
+                    <span>Powered by Cloudflare Turnstile</span>
+                </div>
             </div>
         </div>
     </div>
@@ -383,81 +391,72 @@
         const CONFIG = {
             siteKey: "0x4AAAAAABimt1T7asd60UgX",
             verifyEndpoint: "https://rjyz.myproject.dpdns.org/",
-            eventId: "turnstile-verification-success", // 自定义事件ID
-            messageSource: "AerIframe", // 消息源标识
-            verificationDelay: 800 // 模拟验证延迟
+            eventId: "turnstile-verification-success",
+            messageSource: "AerIframe"
         };
 
         // DOM元素
         const turnstileContainer = document.getElementById('turnstile-container');
-        const resultContainer = document.getElementById('result-container');
         const resultMessage = document.getElementById('result-message');
-        const loadingIcon = document.getElementById('loading-icon');
-        const successIcon = document.getElementById('success-icon');
-        const errorIcon = document.getElementById('error-icon');
-        const actionButton = document.getElementById('action-button');
-        const progressContainer = document.getElementById('progress-container');
-        const progressBar = document.getElementById('progress-bar');
-        const messageSent = document.getElementById('message-sent');
-        const messageContent = document.getElementById('message-content');
+        const messageContent = resultMessage.querySelector('.message-content');
+        const messageIcon = resultMessage.querySelector('.icon');
+        const resetButton = document.getElementById('reset-button');
+        const continueButton = document.getElementById('continue-button');
+        const successMessage = document.getElementById('success-message');
         
         let turnstileWidget;
-        let verificationToken = "";
+        let verificationCompleted = false;
 
-        // 初始化页面
-        function initPage() {
-            // 添加结果容器显示动画
-            setTimeout(() => {
-                resultContainer.classList.add('show');
-            }, 300);
-        }
-
-        // 渲染验证组件
+        // 显式渲染Turnstile组件
         function renderTurnstile() {
-            // 重置状态
+            // 移除加载占位符
             turnstileContainer.innerHTML = "";
-            actionButton.classList.add('hidden');
-            progressContainer.style.display = 'none';
-            messageSent.classList.remove('show');
-            hideAllIcons();
-            loadingIcon.classList.remove('hidden');
+            resultMessage.classList.add('hidden');
+            resetButton.classList.add('hidden');
+            continueButton.classList.add('hidden');
+            successMessage.classList.add('hidden');
             
-            // 更新消息
-            showVerificationStatus("请完成人机验证", "loading");
+            // 重置状态
+            verificationCompleted = false;
             
-            // 渲染Turnstile
-            turnstileWidget = window.turnstile.render('#turnstile-container', {
-                sitekey: CONFIG.siteKey,
-                theme: "light",
-                size: "normal",
-                language: "zh",
-                callback: function(token) {
-                    verificationToken = token;
-                    verifyToken(token);
-                },
-                'expired-callback': function() {
-                    showVerificationStatus("验证已过期，请重新验证", "error");
-                    actionButton.classList.remove('hidden');
-                },
-                'error-callback': function() {
-                    showVerificationStatus("验证失败，请重试", "error");
-                    actionButton.classList.remove('hidden');
-                }
-            });
-        }
-
-        // 验证令牌
-        async function verifyToken(token) {
-            // 显示验证中状态
-            showVerificationStatus("正在验证您的身份，请稍候...", "loading");
-            progressContainer.style.display = 'block';
-            progressBar.style.width = '30%';
+            // 检查Turnstile是否已加载
+            if (typeof window.turnstile === 'undefined') {
+                showResult("<i class='fas fa-exclamation-triangle'></i>", "验证系统加载失败，请重试", "error");
+                resetButton.classList.remove('hidden');
+                return;
+            }
             
             try {
-                // 模拟验证进度
-                await simulateProgress();
-                
-                // 发送验证请求
+                turnstileWidget = window.turnstile.render('#turnstile-container', {
+                    sitekey: CONFIG.siteKey,
+                    theme: "light",
+                    size: "normal",
+                    retry: "auto",
+                    language: "zh",
+                    callback: function(token) {
+                        handleVerification(token);
+                    },
+                    'expired-callback': function() {
+                        showResult("<i class='fas fa-hourglass-half'></i>", "验证已过期，请重新验证", "error");
+                        resetButton.classList.remove('hidden');
+                    },
+                    'error-callback': function() {
+                        showResult("<i class='fas fa-exclamation-triangle'></i>", "验证失败，请重试", "error");
+                        resetButton.classList.remove('hidden');
+                    }
+                });
+            } catch (e) {
+                console.error("Turnstile渲染错误:", e);
+                showResult("<i class='fas fa-exclamation-triangle'></i>", "验证系统初始化失败", "error");
+                resetButton.classList.remove('hidden');
+            }
+        }
+
+        // 验证结果处理器
+        async function handleVerification(token) {
+            showResult("<i class='fas fa-spinner fa-spin'></i>", "正在验证您的身份，请稍候...", "loading");
+            
+            try {
                 const response = await fetch(CONFIG.verifyEndpoint, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -468,138 +467,95 @@
                     throw new Error(`服务器错误: ${response.status}`);
                 }
                 
-                // 更新进度
-                progressBar.style.width = '80%';
-                
                 const result = await response.json();
                 
-                // 添加一点延迟让用户看到进度完成
-                await new Promise(resolve => setTimeout(resolve, 300));
-                progressBar.style.width = '100%';
-                
                 if (result.success) {
-                    // 验证成功
-                    showVerificationStatus("验证成功！您是真实用户", "success");
+                    // 验证成功处理
+                    verificationCompleted = true;
                     
-                    // 发送消息给父窗口
-                    sendSuccessMessage(result);
+                    // 显示成功状态
+                    resultMessage.classList.add('hidden');
+                    successMessage.classList.remove('hidden');
+                    continueButton.classList.remove('hidden');
                     
-                    // 显示发送的消息内容
-                    displaySentMessage();
-                    
-                    // 3秒后隐藏进度条
-                    setTimeout(() => {
-                        progressContainer.style.display = 'none';
-                    }, 1000);
+                    // 隐藏验证框
+                    turnstileContainer.style.opacity = "0.5";
+                    turnstileContainer.style.pointerEvents = "none";
                 } else {
-                    // 验证失败
-                    showVerificationStatus(`验证失败：${result.message || '疑似机器人行为'}`, "error");
-                    actionButton.classList.remove('hidden');
-                    progressContainer.style.display = 'none';
+                    showResult("<i class='fas fa-times-circle'></i>", `验证失败：${result.message || '疑似机器人行为'}`, "error");
+                    resetButton.classList.remove('hidden');
                 }
             } catch (error) {
                 let errorMsg = error.message;
                 if (error.message.includes("Failed to fetch")) {
                     errorMsg = "无法连接验证服务器，请检查网络";
                 }
-                showVerificationStatus(`验证错误：${errorMsg}`, "error");
-                actionButton.classList.remove('hidden');
-                progressContainer.style.display = 'none';
+                showResult("<i class='fas fa-exclamation-circle'></i>", errorMsg, "error");
+                resetButton.classList.remove('hidden');
             }
         }
 
-        // 发送成功消息给父窗口
-        function sendSuccessMessage(result) {
-            const message = {
+        // 显示验证结果
+        function showResult(icon, text, type) {
+            messageIcon.innerHTML = icon;
+            messageContent.innerHTML = text;
+            
+            // 移除所有状态类
+            resultMessage.classList.remove('success', 'error', 'loading');
+            
+            // 添加当前状态类
+            resultMessage.classList.add(type);
+            resultMessage.classList.remove('hidden');
+        }
+
+        // 重置验证
+        resetButton.addEventListener('click', function() {
+            turnstileContainer.style.opacity = "1";
+            turnstileContainer.style.pointerEvents = "auto";
+            renderTurnstile();
+        });
+
+        // 继续按钮点击事件
+        continueButton.addEventListener('click', function() {
+            // 广播消息给父窗口
+            parent.postMessage({
                 source: CONFIG.messageSource,
                 id: CONFIG.eventId,
                 data: {
                     message: "人机验证成功",
-                    token: verificationToken,
-                    timestamp: new Date().toISOString(),
-                    challenge_ts: result.challenge_ts,
-                    hostname: result.hostname,
-                    action: result.action,
-                    cdata: result.cdata
+                    timestamp: new Date().toISOString()
                 }
-            };
+            }, '*');
             
-            // 发送消息给父窗口
-            parent.postMessage(message, '*');
-            return message;
-        }
-
-        // 显示发送的消息内容
-        function displaySentMessage() {
-            const message = {
-                source: CONFIG.messageSource,
-                id: CONFIG.eventId,
-                data: "人机验证成功"
-            };
+            // 显示消息已发送
+            showResult("<i class='fas fa-paper-plane'></i>", "验证成功消息已发送", "success");
+            continueButton.classList.add('hidden');
+            successMessage.classList.add('hidden');
             
-            messageContent.textContent = JSON.stringify(message, null, 2);
-            messageSent.classList.add('show');
-        }
-
-        // 模拟验证进度
-        async function simulateProgress() {
-            return new Promise(resolve => {
-                const interval = setInterval(() => {
-                    if (parseInt(progressBar.style.width) < 70) {
-                        progressBar.style.width = (parseInt(progressBar.style.width) + 5) + '%';
-                    } else {
-                        clearInterval(interval);
-                        resolve();
-                    }
-                }, 100);
-            });
-        }
-
-        // 显示验证状态
-        function showVerificationStatus(message, status) {
-            resultMessage.textContent = message;
-            
-            // 更新样式
-            resultContainer.className = 'result-container';
-            if (status === "loading") {
-                resultContainer.classList.add('show');
-            } else if (status === "success") {
-                resultContainer.classList.add('show', 'success');
-            } else if (status === "error") {
-                resultContainer.classList.add('show', 'error');
-            }
-            
-            // 更新图标
-            hideAllIcons();
-            if (status === "loading") {
-                loadingIcon.classList.remove('hidden');
-            } else if (status === "success") {
-                successIcon.classList.remove('hidden');
-            } else if (status === "error") {
-                errorIcon.classList.remove('hidden');
-            }
-        }
-
-        // 隐藏所有图标
-        function hideAllIcons() {
-            loadingIcon.classList.add('hidden');
-            successIcon.classList.add('hidden');
-            errorIcon.classList.add('hidden');
-        }
-
-        // 重新验证
-        actionButton.addEventListener('click', function() {
-            renderTurnstile();
+            // 3秒后重置
+            setTimeout(() => {
+                turnstileContainer.style.opacity = "1";
+                turnstileContainer.style.pointerEvents = "auto";
+                renderTurnstile();
+            }, 3000);
         });
 
         // Turnstile加载完成回调
         window.onLoadCallback = function() {
-            // 渲染验证组件
             renderTurnstile();
         };
-
-        // 初始化页面
-        window.addEventListener('DOMContentLoaded', initPage);
+        
+        // 备用加载检查
+        window.addEventListener('load', function() {
+            // 如果Turnstile在DOM加载完成后仍未初始化
+            if (typeof window.turnstile === 'undefined') {
+                setTimeout(() => {
+                    if (typeof window.turnstile === 'undefined') {
+                        window.onLoadCallback();
+                    }
+                }, 1000);
+            }
+        });
     </script>
 </body>
 </html>
